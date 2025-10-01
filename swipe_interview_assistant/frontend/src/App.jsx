@@ -14,7 +14,16 @@ import MissingFieldsForm from './components/interviewee/MissingFieldsForm';
 import InterviewComplete from './components/interviewee/InterviewComplete';
 import StartInterviewButton from './components/interviewee/StartInterviewButton';
 
+// Interviewer Components
+import Dashboard from './components/Interviewer/Dashboard';
+import CandidateList from './components/Interviewer/CandidateList';
+import CandidateDetail from './components/Interviewer/CandidateDetail';
 
+// Store actions
+import { initializeApp, checkUnfinishedSession } from './store/slices/uiSlice';
+import { loadCandidates } from './store/slices/candidateSlice';
+import { loadInterviewState } from './store/slices/interviewSlice';
+import { loadResumeState } from './store/slices/resumeSlice';
 
 function App() {
   const dispatch = useDispatch();
