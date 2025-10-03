@@ -2,9 +2,9 @@
 // This service integrates with AI APIs (OpenAI, Anthropic, etc.)
 
 const AI_SERVICE_CONFIG = {
-  baseURL: process.env.REACT_APP_AI_API_URL || 'https://api.openai.com/v1',
-  apiKey: process.env.REACT_APP_AI_API_KEY,
-  model: process.env.REACT_APP_AI_MODEL || 'gpt-3.5-turbo',
+  baseURL: import.meta.env.VITE_AI_API_URL || 'https://api.openai.com/v1',
+  apiKey: import.meta.env.VITE_AI_API_KEY,
+  model: import.meta.env.VITE_AI_MODEL || 'gpt-3.5-turbo',
   maxTokens: 1000,
   temperature: 0.7
 };
@@ -16,7 +16,7 @@ class AIService {
   constructor() {
     this.isMockMode = !AI_SERVICE_CONFIG.apiKey;
     if (this.isMockMode) {
-      console.warn('AI Service running in mock mode. Set REACT_APP_AI_API_KEY to use real AI.');
+      console.warn('AI Service running in mock mode. Set VITE_AI_API_KEY to use real AI.');
     }
   }
 

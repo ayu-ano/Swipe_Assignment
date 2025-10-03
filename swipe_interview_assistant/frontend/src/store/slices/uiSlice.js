@@ -2,6 +2,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
+  // App initialization
+  isInitialized: false,
+  activeTab: 'interviewee',
+  showWelcomeBackModal: false,
+  
   // Modal states
   modals: {
     welcomeBack: {
@@ -81,6 +86,38 @@ const uiSlice = createSlice({
   name: 'ui',
   initialState,
   reducers: {
+    // App initialization
+    initializeApp: (state) => {
+      state.isInitialized = true;
+    },
+    
+    setActiveTab: (state, action) => {
+      state.activeTab = action.payload;
+    },
+    
+    checkUnfinishedSession: (state) => {
+      // Check localStorage for unfinished interview session
+      try {
+        const interviewState = localStorage.getItem('crisp_interview_state');
+        const resumeState = localStorage.getItem('crisp_resume_state');
+        
+        if (interviewState) {
+          const parsedInterview = JSON.parse(interviewState);
+          if (parsedInterview.status === 'in-progress' || parsedInterview.status === 'paused') {
+            state.showWelcomeBackModal = true;
+            state.modals.welcomeBack.isOpen = true;
+            state.modals.welcomeBack.data = {
+              sessionId: parsedInterview.sessionId,
+              resumeData: resumeState ? JSON.parse(resumeState).resumeData : null,
+              progress: parsedInterview.currentQuestionIndex + 1
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error checking unfinished session:', error);
+      }
+    },
+    
     // Modal actions
     openModal: (state, action) => {
       const { modalName, data } = action.payload;
@@ -95,6 +132,11 @@ const uiSlice = createSlice({
       if (state.modals[modalName]) {
         state.modals[modalName].isOpen = false;
         state.modals[modalName].data = null;
+        
+        // Special handling for welcome back modal
+        if (modalName === 'welcomeBack') {
+          state.showWelcomeBackModal = false;
+        }
       }
     },
     
@@ -103,6 +145,7 @@ const uiSlice = createSlice({
         state.modals[modalName].isOpen = false;
         state.modals[modalName].data = null;
       });
+      state.showWelcomeBackModal = false;
     },
     
     updateModalData: (state, action) => {
@@ -230,6 +273,11 @@ const uiSlice = createSlice({
 });
 
 // Selectors
+export const selectUI = (state) => state.ui;
+export const selectIsInitialized = (state) => state.ui.isInitialized;
+export const selectActiveTab = (state) => state.ui.activeTab;
+export const selectShowWelcomeBackModal = (state) => state.ui.showWelcomeBackModal;
+
 export const selectModals = (state) => state.ui.modals;
 export const selectModal = (modalName) => (state) => state.ui.modals[modalName];
 export const selectIsModalOpen = (modalName) => (state) => 
@@ -257,6 +305,9 @@ export const selectGlobalError = (state) => state.ui.errors.globalError;
 
 // Action creators
 export const {
+  initializeApp,
+  setActiveTab,
+  checkUnfinishedSession,
   openModal,
   closeModal,
   closeAllModals,

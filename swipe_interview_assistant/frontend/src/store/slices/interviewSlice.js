@@ -147,6 +147,10 @@ const interviewSlice = createSlice({
       }
     },
     
+    setInterviewStatus: (state, action) => {
+      state.status = action.payload;
+    },
+    
     pauseInterview: (state) => {
       if (state.status === 'in-progress') {
         state.status = 'paused';
@@ -187,6 +191,44 @@ const interviewSlice = createSlice({
     },
     
     resetInterview: () => initialState,
+    
+    // Persistence actions
+    loadInterviewState: (state) => {
+      try {
+        const interviewState = localStorage.getItem('crisp_interview_state');
+        if (interviewState) {
+          const parsedState = JSON.parse(interviewState);
+          
+          // Only load if the session was not completed
+          if (parsedState.status !== 'completed') {
+            Object.keys(parsedState).forEach(key => {
+              if (key in state) {
+                state[key] = parsedState[key];
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load interview state:', error);
+        state.error = 'Failed to load interview session';
+      }
+    },
+    
+    saveInterviewState: (state) => {
+      try {
+        localStorage.setItem('crisp_interview_state', JSON.stringify(state));
+      } catch (error) {
+        console.error('Failed to save interview state:', error);
+      }
+    },
+    
+    clearInterviewState: () => {
+      try {
+        localStorage.removeItem('crisp_interview_state');
+      } catch (error) {
+        console.error('Failed to clear interview state:', error);
+      }
+    },
     
     // Question management
     setCurrentQuestion: (state, action) => {
@@ -389,10 +431,14 @@ const interviewSlice = createSlice({
 export const {
   initializeSession,
   startInterview,
+  setInterviewStatus,
   pauseInterview,
   resumeInterview,
   completeInterview,
   resetInterview,
+  loadInterviewState,
+  saveInterviewState,
+  clearInterviewState,
   setCurrentQuestion,
   moveToNextQuestion,
   submitAnswer,

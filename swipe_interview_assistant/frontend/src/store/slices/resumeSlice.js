@@ -109,6 +109,7 @@ const initialState = {
   parsingStatus: 'idle', // 'idle' | 'loading' | 'succeeded' | 'failed'
   validationStatus: 'idle',
   updateStatus: 'idle',
+  uploadStatus: 'idle',
   error: null,
   lastUpdated: null,
   fileInfo: null
@@ -129,9 +130,14 @@ const resumeSlice = createSlice({
       state.error = null;
       state.lastUpdated = null;
       state.fileInfo = null;
+      state.uploadStatus = 'idle';
     },
     setResumeData: (state, action) => {
       state.resumeData = action.payload;
+      state.lastUpdated = new Date().toISOString();
+    },
+    updateResumeData: (state, action) => {
+      state.resumeData = { ...state.resumeData, ...action.payload };
       state.lastUpdated = new Date().toISOString();
     },
     updateFieldLocally: (state, action) => {
@@ -151,6 +157,50 @@ const resumeSlice = createSlice({
         missingFields: []
       };
       state.validationStatus = 'idle';
+    },
+    setMissingFields: (state, action) => {
+      state.validation.missingFields = action.payload;
+    },
+    clearMissingFields: (state) => {
+      state.validation.missingFields = [];
+    },
+    setUploadStatus: (state, action) => {
+      state.uploadStatus = action.payload;
+    },
+    // Persistence actions
+    loadResumeState: (state) => {
+      try {
+        const resumeState = localStorage.getItem('crisp_resume_state');
+        if (resumeState) {
+          const parsedState = JSON.parse(resumeState);
+          
+          // Only load if we have valid resume data
+          if (parsedState.resumeData) {
+            Object.keys(parsedState).forEach(key => {
+              if (key in state) {
+                state[key] = parsedState[key];
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load resume state:', error);
+        state.error = 'Failed to load resume data';
+      }
+    },
+    saveResumeState: (state) => {
+      try {
+        localStorage.setItem('crisp_resume_state', JSON.stringify(state));
+      } catch (error) {
+        console.error('Failed to save resume state:', error);
+      }
+    },
+    clearResumeState: () => {
+      try {
+        localStorage.removeItem('crisp_resume_state');
+      } catch (error) {
+        console.error('Failed to clear resume state:', error);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -158,10 +208,12 @@ const resumeSlice = createSlice({
       // Parse Resume cases
       .addCase(parseResume.pending, (state) => {
         state.parsingStatus = 'loading';
+        state.uploadStatus = 'uploading';
         state.error = null;
       })
       .addCase(parseResume.fulfilled, (state, action) => {
         state.parsingStatus = 'succeeded';
+        state.uploadStatus = 'success';
         state.parsedData = action.payload;
         state.resumeData = action.payload;
         state.fileInfo = {
@@ -174,6 +226,7 @@ const resumeSlice = createSlice({
       })
       .addCase(parseResume.rejected, (state, action) => {
         state.parsingStatus = 'failed';
+        state.uploadStatus = 'failed';
         state.error = action.payload;
       })
       // Validate Resume Fields cases
@@ -214,6 +267,7 @@ export const selectValidation = (state) => state.resume.validation;
 export const selectParsingStatus = (state) => state.resume.parsingStatus;
 export const selectValidationStatus = (state) => state.resume.validationStatus;
 export const selectUpdateStatus = (state) => state.resume.updateStatus;
+export const selectUploadStatus = (state) => state.resume.uploadStatus;
 export const selectResumeError = (state) => state.resume.error;
 export const selectFileInfo = (state) => state.resume.fileInfo;
 export const selectLastUpdated = (state) => state.resume.lastUpdated;
@@ -243,9 +297,16 @@ export const selectResumeValidationErrors = createSelector(
 export const { 
   clearResumeData, 
   setResumeData, 
+  updateResumeData,
   updateFieldLocally, 
   clearError, 
-  resetValidation 
+  resetValidation,
+  setMissingFields,
+  clearMissingFields,
+  setUploadStatus,
+  loadResumeState,
+  saveResumeState,
+  clearResumeState
 } = resumeSlice.actions;
 
 // Export reducer

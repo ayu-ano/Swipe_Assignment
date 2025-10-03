@@ -105,6 +105,31 @@ const candidateSlice = createSlice({
   initialState,
   reducers: {
     // Sync actions
+    addCandidate: (state, action) => {
+      const candidate = {
+        id: uuidv4(),
+        ...action.payload,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      state.candidates.push(candidate);
+      state.pagination.totalCount = state.candidates.length;
+      state.lastUpdated = new Date().toISOString();
+    },
+    
+    loadCandidates: (state) => {
+      try {
+        const storedCandidates = localStorage.getItem('crisp_candidates');
+        if (storedCandidates) {
+          state.candidates = JSON.parse(storedCandidates);
+          state.pagination.totalCount = state.candidates.length;
+          state.lastUpdated = new Date().toISOString();
+        }
+      } catch (error) {
+        state.error = 'Failed to load candidates from storage';
+      }
+    },
+    
     setSelectedCandidate: (state, action) => {
       state.selectedCandidate = action.payload;
     },
@@ -242,6 +267,8 @@ const candidateSlice = createSlice({
 
 // Export actions
 export const {
+  addCandidate,
+  loadCandidates,
   setSelectedCandidate,
   clearSelectedCandidate,
   setFilters,
