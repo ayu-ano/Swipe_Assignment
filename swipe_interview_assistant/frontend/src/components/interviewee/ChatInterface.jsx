@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Send, Clock, User, Bot } from 'lucide-react';
+import { Send, Clock, User, Bot, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { generateQuestion, evaluateAnswer } from '../../services/aiService';
 import { 
   setCurrentQuestion, 
@@ -165,6 +165,34 @@ const ChatInterface = () => {
     }
   };
 
+  const getMessageIcon = (type) => {
+    switch (type) {
+      case 'answer':
+        return <User className="w-4 h-4" />;
+      case 'evaluation':
+        return <CheckCircle2 className="w-4 h-4" />;
+      case 'error':
+        return <AlertCircle className="w-4 h-4" />;
+      default:
+        return <Bot className="w-4 h-4" />;
+    }
+  };
+
+  const getMessageStyles = (type) => {
+    const baseStyles = "rounded-2xl p-4 max-w-3xl shadow-sm";
+    
+    switch (type) {
+      case 'answer':
+        return `${baseStyles} bg-gradient-to-br from-blue-600 to-blue-700 text-white ml-auto`;
+      case 'evaluation':
+        return `${baseStyles} bg-green-50 border border-green-200 text-green-900`;
+      case 'error':
+        return `${baseStyles} bg-red-50 border border-red-200 text-red-900`;
+      default:
+        return `${baseStyles} bg-white border border-gray-200 text-gray-900`;
+    }
+  };
+
   // Show missing fields form if required fields are missing
   if (missingFields.length > 0 && interviewStatus !== 'completed') {
     return <MissingFieldsForm />;
@@ -176,115 +204,159 @@ const ChatInterface = () => {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto">
-      {/* Header with Progress and Timer */}
-      <div className="border-b border-gray-200 p-4 bg-white">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-semibold text-gray-900">Technical Interview</h2>
-          {interviewStatus === 'in-progress' && (
-            <div className="flex items-center space-x-4">
-              <ProgressIndicator />
-              <Timer />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
+      {/* Header Section */}
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                Technical Interview
+              </h1>
+              <p className="text-gray-600 mt-1 text-lg">
+                Full-Stack Developer (React/Node.js)
+              </p>
+            </div>
+            
+            {interviewStatus === 'in-progress' && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="bg-white rounded-xl p-3 border border-gray-200 shadow-sm">
+                  <ProgressIndicator />
+                </div>
+                <div className="bg-orange-50 rounded-xl p-3 border border-orange-200 shadow-sm">
+                  <Timer />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Current Question Card */}
+        {currentQuestion && interviewStatus === 'in-progress' && (
+          <div className="mb-6">
+            <QuestionCard question={currentQuestion} />
+          </div>
+        )}
+
+        {/* Chat Container */}
+        <div className="flex-1 flex flex-col bg-white/60 backdrop-blur-sm rounded-3xl border border-gray-200/50 shadow-sm overflow-hidden">
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {messages.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Bot className="w-10 h-10 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Welcome to Your Interview
+                </h3>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  The AI interviewer will ask you questions about full-stack development. 
+                  Answer thoughtfully within the time limit for each question.
+                </p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${
+                    message.type === 'answer' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  <div className="flex items-start gap-3 max-w-full">
+                    {message.type !== 'answer' && (
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                        message.type === 'evaluation' 
+                          ? 'bg-green-100 text-green-600 border border-green-200'
+                          : message.type === 'error'
+                          ? 'bg-red-100 text-red-600 border border-red-200'
+                          : 'bg-blue-100 text-blue-600 border border-blue-200'
+                      }`}>
+                        {getMessageIcon(message.type)}
+                      </div>
+                    )}
+                    
+                    <div className={getMessageStyles(message.type)}>
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          {message.score && (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              message.score >= 80 
+                                ? 'bg-green-100 text-green-700'
+                                : message.score >= 60
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              Score: {message.score}/100
+                            </span>
+                          )}
+                        </div>
+                        <span className="opacity-70">
+                          {new Date(message.timestamp).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {message.type === 'answer' && (
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-blue-600 text-white border border-blue-700">
+                        <User className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          {interviewStatus === 'in-progress' && currentQuestion && (
+            <div className="border-t border-gray-200/50 bg-white/80 backdrop-blur-sm p-6">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <textarea
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Type your answer here... (Press Enter to send, Shift+Enter for new line)"
+                      className="w-full border border-gray-300 rounded-2xl p-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm transition-all duration-200 text-lg min-h-[120px]"
+                      rows="3"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 sm:w-auto">
+                    <button
+                      onClick={handleSubmitAnswer}
+                      disabled={!inputMessage.trim()}
+                      className="flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg font-medium text-lg min-w-[140px]"
+                    >
+                      <Send size={20} />
+                      Send
+                    </button>
+                    
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-500 bg-orange-50 rounded-xl p-2 border border-orange-200">
+                      <Clock size={16} />
+                      <span>Time left: <strong>{timer}s</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
-        <p className="text-sm text-gray-600">
-          Full-Stack (React/Node.js) Position
-        </p>
       </div>
-
-      {/* Current Question Card */}
-      {currentQuestion && interviewStatus === 'in-progress' && (
-        <div className="p-4 border-b border-gray-200 bg-blue-50">
-          <QuestionCard question={currentQuestion} />
-        </div>
-      )}
-
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${
-              message.type === 'answer' ? 'justify-end' : 'justify-start'
-            }`}
-          >
-            <div
-              className={`flex max-w-[80%] ${
-                message.type === 'answer' ? 'flex-row-reverse' : 'flex-row'
-              } items-start space-x-2`}
-            >
-              <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'answer' 
-                    ? 'bg-blue-600 text-white' 
-                    : message.type === 'evaluation'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-600 text-white'
-                }`}
-              >
-                {message.type === 'answer' ? (
-                  <User size={16} />
-                ) : message.type === 'evaluation' ? (
-                  <Bot size={16} />
-                ) : (
-                  <Bot size={16} />
-                )}
-              </div>
-              
-              <div
-                className={`rounded-lg p-3 ${
-                  message.type === 'answer'
-                    ? 'bg-blue-600 text-white'
-                    : message.type === 'evaluation'
-                    ? 'bg-green-100 text-green-900 border border-green-200'
-                    : message.type === 'error'
-                    ? 'bg-red-100 text-red-900 border border-red-200'
-                    : 'bg-gray-100 text-gray-900'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                {message.score && (
-                  <p className="text-xs mt-1 opacity-75">
-                    Score: {message.score}/100
-                  </p>
-                )}
-                <p className="text-xs mt-1 opacity-75">
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      {interviewStatus === 'in-progress' && currentQuestion && (
-        <div className="border-t border-gray-200 p-4 bg-white">
-          <div className="flex space-x-2">
-            <textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your answer here... (Press Enter to send)"
-              className="flex-1 border border-gray-300 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows="3"
-            />
-            <button
-              onClick={handleSubmitAnswer}
-              disabled={!inputMessage.trim()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              <Send size={16} />
-              <span>Send</span>
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Time remaining for this question: <strong>{timer}s</strong>
-          </p>
-        </div>
-      )}
     </div>
   );
 };
